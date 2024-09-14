@@ -16,7 +16,7 @@ const noteSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    default: "",
+    default: "unassigned",
   },
   dueDate: {
     type: Date,

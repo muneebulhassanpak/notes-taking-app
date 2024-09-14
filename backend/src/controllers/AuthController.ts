@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 dotenv.config();
-// const { validationResult } from "express-validator";
 import { signup, verifyAccount } from "../services/auth.service";
 
 // Sign up
@@ -11,11 +10,7 @@ export const signupController = async (
   next: NextFunction
 ) => {
   const { name, email, password } = req.body;
-  // let errors = validationResult(req);
   try {
-    // if (!errors.isEmpty()) {
-    //   return next(new Error(errors));
-    // }
     const response = await signup(name, email, password);
     return res.json(response);
   } catch (error) {

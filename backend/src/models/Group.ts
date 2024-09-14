@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const noteSchema = new mongoose.Schema({
   title: {
@@ -7,8 +7,7 @@ const noteSchema = new mongoose.Schema({
   },
   description: {
     type: String,
-    required: true,
-    unique: true,
+    default: "",
   },
   members: {
     type: [String],
@@ -16,7 +15,7 @@ const noteSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    default: "",
+    default: "active",
   },
   adminId: {
     type: String,

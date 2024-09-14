@@ -23,7 +23,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ?? 3000;
 
 mongoose.connection.once("open", () => {
   app.listen(PORT, () => {
