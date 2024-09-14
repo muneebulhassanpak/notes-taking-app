@@ -1,0 +1,8 @@
+signup
+login
+create a group (one is admin, add others via an invite sent to their email, people accept and become part of the group)
+join a group ( will have a role and will join via the invite link sent to them )
+create and assign the note (If he is the admin, he will assign to others)
+edit a note (Only creator/admin can edit)
+delete a note (Only admin can do)
+mark as complete (to whom its assigned)
