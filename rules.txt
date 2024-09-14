@@ -1,0 +1,10 @@
+COMMITS SOP---------
+feat: implement user profile update functionality
+fix: resolve password hashing bug during user registration
+chore: update nodemailer to latest version
+docs: add contributing guidelines for developers
+refactor: split signup and login logic into separate services
+style: apply consistent naming conventions in models
+
+BRANCH CREATION---------
+git checkout -b "feat/1208310144132658"
