@@ -2,6 +2,7 @@ import dotnenv from "dotenv";
 dotnenv.config();
 import express, { Request, Response, NextFunction } from "express";
 import authRoute from "./routes/auth.route";
+import groupRoute from "./routes/group.route";
 import mongoose from "mongoose";
 import { connectWithDatabase } from "./config/databaseconnection";
 
@@ -13,6 +14,7 @@ app.use(express.json());
 connectWithDatabase();
 
 app.use("/api/auth", authRoute);
+app.use("/api/group", groupRoute);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const code = err.status || 500;
