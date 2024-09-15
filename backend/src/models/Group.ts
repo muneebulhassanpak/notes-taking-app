@@ -23,6 +23,6 @@ const noteSchema = new mongoose.Schema({
   },
 });
 
-const Note = mongoose.model("note", noteSchema);
+const Group = mongoose.model("group", noteSchema);
 
-export default Note;
+export default Group;
