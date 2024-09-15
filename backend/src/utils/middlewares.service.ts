@@ -43,12 +43,12 @@ export const userExists = async (
     const foundUser = await User.findById(userId);
 
     if (!foundUser) {
-      return res.status(404).json({ error: "User not found" });
+      throw new Error("User not found");
     }
 
     next();
   } catch (error) {
-    return res.status(500).json({ error: "Server Error" });
+    next(error);
   }
 };
 
