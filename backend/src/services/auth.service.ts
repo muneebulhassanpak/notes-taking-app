@@ -5,13 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import EmailService from "../utils/email.service";
-
-interface SignupResult {
-  success: boolean;
-  message: string;
-  status: number;
-  data: any;
-}
+import { responseType } from "../types/generic.types";
 
 const generateVerificationHash = async (email: string) => {
   return await bcrypt.hash(email, 10);
@@ -21,7 +15,7 @@ export const signup = async (
   name: string,
   email: string,
   password: string
-): Promise<SignupResult> => {
+): Promise<responseType> => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -47,26 +41,24 @@ export const signup = async (
     });
     await user.save({ session });
 
-    // Commit the transaction
-    await session.commitTransaction();
-
     // Prepare email content
     const subject = "Zuhu - Please Verify Your Email Address";
     const verificationLink = `${process.env.SITE_DOMAIN}/api/auth/verify?id=${user._id}&token=${verificationHash}`;
     const description = `
-      <p>Thank you for signing up at Zuhu! Please verify your email address by clicking the link below:</p>
-      <a href="${verificationLink}">Verify your email</a>
-      <p>If you did not create an account, please ignore this email.</p>
+    <p>Thank you for signing up at Zuhu! Please verify your email address by clicking the link below:</p>
+    <a href="${verificationLink}">Verify your email</a>
+    <p>If you did not create an account, please ignore this email.</p>
     `;
     const emailService = new EmailService();
     await emailService.sendEmail(email, subject, "", description);
+    await session.commitTransaction();
 
     return {
       success: true,
       message:
         "Successfully signed up. Please check your email to verify your account.",
       status: 200,
-      data: null,
+      data: user._id,
     };
   } catch (error) {
     if (session.inTransaction()) {
@@ -94,7 +86,7 @@ export const signup = async (
 export const verifyAccount = async (
   userId: string,
   token: string
-): Promise<SignupResult> => {
+): Promise<responseType> => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
