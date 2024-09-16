@@ -3,55 +3,61 @@ import mongoose from "mongoose";
 import User from "../models/User";
 import dotenv from "dotenv";
 dotenv.config();
+import jwt from "jsonwebtoken";
 
 import EmailService from "../utils/email.service";
 import { responseType } from "../types/generic.types";
+import { withTransaction } from "../utils/generic.service";
 
-const generateVerificationHash = async (email: string) => {
-  return await bcrypt.hash(email, 10);
+// Email generation
+const generateVerificationEmailContent = (
+  userId: string,
+  verificationHash: string
+) => {
+  const subject = "Zuhu - Please Verify Your Email Address";
+  const verificationLink = `${process.env.SITE_DOMAIN}/api/auth/verify?id=${userId}&token=${verificationHash}`;
+  const description = `
+    <p>Thank you for signing up at Zuhu! Please verify your email address by clicking the link below:</p>
+    <a href="${verificationLink}">Verify your email</a>
+    <p>If you did not create an account, please ignore this email.</p>
+  `;
+  return { subject, description };
 };
 
+// verification hash generation
+const generateVerificationHash = async (email: string) =>
+  bcrypt.hash(email, 10);
+
+// Signup function
 export const signup = async (
   name: string,
   email: string,
   password: string
 ): Promise<responseType> => {
-  const session = await mongoose.startSession();
-  try {
-    session.startTransaction();
-
-    // Check if the user already exists
-    const existingUser = await User.findOne({ email: email }).session(session);
+  return withTransaction(async (session) => {
+    const existingUser = await User.findOne({ email }).session(session);
     if (existingUser) {
       throw new Error("User with the same email already exists.");
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Generate verification hash
     const verificationHash = await generateVerificationHash(email);
 
-    // Create a new user
     const user = new User({
       name,
       email,
       password: hashedPassword,
       verificationHash,
     });
+
     await user.save({ session });
 
-    // Prepare email content
-    const subject = "Zuhu - Please Verify Your Email Address";
-    const verificationLink = `${process.env.SITE_DOMAIN}/api/auth/verify?id=${user._id}&token=${verificationHash}`;
-    const description = `
-    <p>Thank you for signing up at Zuhu! Please verify your email address by clicking the link below:</p>
-    <a href="${verificationLink}">Verify your email</a>
-    <p>If you did not create an account, please ignore this email.</p>
-    `;
+    const { subject, description } = generateVerificationEmailContent(
+      user._id.toString(),
+      verificationHash
+    );
     const emailService = new EmailService();
     await emailService.sendEmail(email, subject, "", description);
-    await session.commitTransaction();
 
     return {
       success: true,
@@ -60,56 +66,28 @@ export const signup = async (
       status: 200,
       data: user._id,
     };
-  } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
-
-    let errorMessage = "An error occurred during signup.";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else {
-      console.error("Unexpected error:", error); // Log the error for debugging
-    }
-
-    return {
-      success: false,
-      message: errorMessage,
-      status: 500,
-      data: null,
-    };
-  } finally {
-    session.endSession();
-  }
+  }).catch((error) => ({
+    success: false,
+    message: error.message || "An error occurred during signup.",
+    status: 500,
+    data: null,
+  }));
 };
 
+// Verify account
 export const verifyAccount = async (
   userId: string,
   token: string
 ): Promise<responseType> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+  return withTransaction(async (session) => {
+    const user = await User.findById(userId).session(session);
+    if (!user) throw new Error("No user exists");
 
-  try {
-    const user = await User.findById(userId);
-
-    if (!user) {
-      throw new Error("No user exists");
-    }
-
-    const doesHashMatch = user.verificationHash === token;
-
-    if (!doesHashMatch) {
+    if (user.verificationHash !== token) {
       throw new Error("Invalid authorization link");
     }
 
-    await User.findByIdAndUpdate(
-      userId,
-      { $set: { isVerified: true } },
-      { session }
-    );
-
-    await session.commitTransaction();
+    await User.findByIdAndUpdate(userId, { isVerified: true }, { session });
 
     return {
       success: true,
@@ -117,25 +95,47 @@ export const verifyAccount = async (
       status: 200,
       data: null,
     };
-  } catch (error) {
-    if (session.inTransaction()) {
-      await session.abortTransaction();
-    }
+  }).catch((error) => ({
+    success: false,
+    message: error.message || "An error occurred during account verification.",
+    status: 500,
+    data: null,
+  }));
+};
 
-    let errorMessage = "An error occurred during account verification.";
-    if (error instanceof Error) {
-      errorMessage = error.message;
-    } else {
-      console.error("Unexpected error:", error);
-    }
+// Signin function
+export const signin = async (
+  email: string,
+  password: string
+): Promise<responseType> => {
+  return withTransaction(async (session) => {
+    const user = await User.findOne({ email }).session(session);
+    if (!user) throw new Error("No user found");
+
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) throw new Error("Incorrect login credentials");
+
+    const tokenData = {
+      userId: user._id,
+      name: user.name,
+      isVerified: user.isVerified,
+    };
+
+    const token = jwt.sign(tokenData, process.env.JWT_KEY!);
+
+    user.token = token;
+    await user.save({ session });
 
     return {
-      success: false,
-      message: errorMessage,
-      status: 500,
-      data: null,
+      success: true,
+      message: "Successful signin",
+      status: 200,
+      data: { ...tokenData, token },
     };
-  } finally {
-    session.endSession();
-  }
+  }).catch((error) => ({
+    success: false,
+    message: error.message || "An error occurred during signin.",
+    status: 500,
+    data: null,
+  }));
 };

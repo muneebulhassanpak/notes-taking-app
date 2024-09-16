@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 dotenv.config();
-import { signup, verifyAccount } from "../services/auth.service";
+import { signup, verifyAccount, signin } from "../services/auth.service";
+import { CustomizedRequest } from "../types/generic.types";
 
 // Sign up
 export const signupController = async (
@@ -35,6 +36,30 @@ export const accountVerificationController = async (
   try {
     const response = await verifyAccount(id, token);
     return res.json(response);
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+// Sign in
+export const signinController = async (
+  req: CustomizedRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      throw new Error("Invalid/Incomplete Data");
+    }
+    const response = await signin(email, password);
+
+    res
+      .header("Access-Control-Allow-Credentials", "true")
+      .cookie("access_token", response?.data);
+    const modifiedResponse = { ...response, data: response?.data };
+    return res.json(modifiedResponse);
   } catch (error) {
     console.log(error);
     next(error);
