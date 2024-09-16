@@ -25,7 +25,8 @@ export const hasAttachedCookie = (
     if (!data) {
       throw new Error("Incorrect token");
     }
-    req.user = data;
+    req.basicUser = data;
+
     next();
   } catch (error) {
     next(error);
@@ -39,12 +40,14 @@ export const userExists = async (
   next: NextFunction
 ) => {
   try {
-    const userId = req.user?.userId;
+    const userId = req.basicUser?.userId;
     const foundUser = await User.findById(userId);
 
     if (!foundUser) {
       throw new Error("User not found");
     }
+
+    req.fullUser = foundUser;
 
     next();
   } catch (error) {
@@ -59,7 +62,7 @@ export const isUserVerified = (
   next: NextFunction
 ) => {
   try {
-    if (!req.user?.isVerified) {
+    if (!req.basicUser?.isVerified) {
       throw new Error(
         "You are not verified. Please verify your account to proceed."
       );

@@ -14,6 +14,18 @@ export interface MyJwtPayload extends JwtPayload {
   isVerified: boolean;
 }
 
+export interface fullUser {
+  name: string;
+  email: string;
+  password: string;
+  image?: string;
+  isVerified?: boolean;
+  verificationHash: string;
+  token?: string;
+  groups?: any[];
+}
+
 export interface CustomizedRequest extends Request {
-  user?: MyJwtPayload;
+  basicUser?: MyJwtPayload;
+  fullUser?: fullUser;
 }

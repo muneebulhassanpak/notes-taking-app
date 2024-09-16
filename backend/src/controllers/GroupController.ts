@@ -10,7 +10,7 @@ export const createGroupController = async (
   res: Response,
   next: NextFunction
 ) => {
-  let userId = req.user?.userId;
+  let userId = req.basicUser?.userId;
   let { title, description, members } = req.body;
   try {
     if (!title) {
